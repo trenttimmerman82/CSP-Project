@@ -70,13 +70,35 @@
     border-radius: 0 8px 8px 0; margin: 12px 0;
   }
   .banner { background: #fff4d6; border: 1px solid #eeda9c; padding: 10px 14px; border-radius: 8px; margin-top: 12px; font-size: .9rem; }
+  .banner.test { background: #fde8e6; border-color: #f0b4ae; color: #7a1a14; }
+  .control-box.testbox { border-left-color: var(--bad); background: #fdf1f0; }
+  .control-box.testbox select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; margin: 0 12px 0 4px; }
 
   /* Learning stage */
   .stage { min-height: 320px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
   .stage .passage { font-size: 1.25rem; line-height: 1.7; text-align: left; max-width: 620px; }
-  .stage .pic { font-size: 6rem; line-height: 1.2; }
   .stage .pulse { font-size: 4rem; animation: pulse 1.6s ease-in-out infinite; }
   @keyframes pulse { 50% { transform: scale(1.12); opacity: .7; } }
+  .passage h3.ptitle { font-size: 1.1rem; color: var(--accent); margin: 0 0 8px; }
+  .passage .keypt { margin-top: 14px; padding: 10px 14px; background: #eef4fc; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; font-size: 1.05rem; }
+
+  /* Narrated slideshow: title + diagram + key facts that appear as the narrator reaches them */
+  .slide { width: 100%; text-align: left; }
+  .slide-title { font-size: 1.4rem; font-weight: 800; display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .slide-title .num { background: var(--series-video); color: #fff; border-radius: 50%; width: 32px; height: 32px; flex: none;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; }
+  .slide-body { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: center; }
+  @media (max-width: 640px) { .slide-body { grid-template-columns: 1fr; } }
+  .slide .art svg { width: 100%; height: auto; display: block; border-radius: 12px; }
+  .facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .fact { background: #fff; border: 1px solid var(--line); border-left: 5px solid var(--series-video); border-radius: 10px;
+    padding: 10px 14px; opacity: 0; transform: translateY(8px); transition: opacity .5s, transform .5s; }
+  .fact.on { opacity: 1; transform: none; }
+  .fact b { display: block; font-size: 1.5rem; line-height: 1.25; }
+  .fact span { color: var(--ink-2); font-size: .95rem; }
+  .glow { transform-box: fill-box; transform-origin: center; animation: glow 2.2s ease-in-out infinite; }
+  @keyframes glow { 50% { opacity: .45; transform: scale(1.3); } }
+  @media (prefers-reduced-motion: reduce) { .glow, .stage .pulse { animation: none; } .fact { transition: none; } }
   .timerbar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin-top: 8px; }
   .timerbar > div { height: 100%; width: 0; background: var(--accent); transition: width .2s linear; }
 
@@ -102,6 +124,7 @@
   th { background: #f0efea; position: sticky; top: 0; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .tablewrap { overflow: auto; max-height: 520px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  tr.excl td { color: var(--ink-3); background: #f7f6f2; }
   #chartWrap { position: relative; }
   #chartWrap svg { width: 100%; height: auto; display: block; }
   #tip {
@@ -125,6 +148,9 @@
       <li data-step="quiz">Quiz</li>
       <li data-step="result">Result</li>
     </ol>
+    <div id="testBanner" class="banner test hidden">
+      <b>Test run:</b> this run is saved with a <code>TEST-</code> ID and is <b>left out of all results, charts and CSVs</b>.
+    </div>
     <div id="demoBanner" class="banner hidden">
       <b>Demo mode:</b> no cloud data store is connected yet, so results are saved only in this browser.
       Set <code>SCRIPT_URL</code> in index.html before collecting real data (see README).
@@ -151,6 +177,19 @@
     </div>
     <p class="small muted">Please do the study on your own, without notes. If you are in a listening or video group you will need sound (headphones are best).
       Participation is voluntary; only your initials (optional) and quiz answers are recorded.</p>
+    <div id="testPanel" class="control-box testbox hidden">
+      <b>Test run</b> – walk through the whole study to check it works. It doesn't use up a turn in the random
+      group rotation, and it's excluded from the results. It is still saved to your Google Sheet (as <code>TEST-…</code>),
+      so you can confirm saving works end to end.
+      <div style="margin-top:10px">
+        <label>Medium
+          <select id="testMedium"><option value="text">Reading (text)</option><option value="video">Narrated slideshow (video)</option><option value="audio">Listening (audio)</option></select>
+        </label>
+        <label>Speed
+          <select id="testSpeed"><option value="full">Full length</option><option value="quick">Quick (8 s per part)</option></select>
+        </label>
+      </div>
+    </div>
     <label class="field" for="nameInput">Name or initials (optional)</label>
     <input type="text" id="nameInput" maxlength="40" autocomplete="off" placeholder="e.g. J.S.">
     <div class="row" style="margin-top:16px">
@@ -211,6 +250,7 @@
     <h2>Step 4 · Your result</h2>
     <div class="score" id="scoreBig"></div>
     <p id="scorePct" class="muted"></p>
+    <p id="testNote" class="banner test hidden"><b>Test run:</b> saved with a <code>TEST-</code> ID and excluded from the results.</p>
     <p id="saveStatus">Saving…</p>
     <div id="saveFail" class="hidden">
       <p>Your result couldn't be saved automatically (this can happen on some school devices). Please
@@ -224,7 +264,7 @@
     <button class="secondary" id="btnNext">Finish (next participant can start)</button>
   </section>
 
-  <footer><a href="#results">Researcher</a></footer>
+  <footer><a href="#test">Test run</a> · <a href="#results">Researcher</a></footer>
 </main>
 
 <!-- ====================== RESEARCHER VIEW ====================== -->
@@ -255,8 +295,9 @@
         <input type="file" id="importFile" accept=".csv,text/csv" multiple class="hidden">
       </div>
       <label class="small" style="display:block;margin-top:12px">
-        <input type="checkbox" id="chkExclude"> Exclude flagged responses (reported a technical problem, reloaded mid-material, or switched tabs during the material)
+        <input type="checkbox" id="chkExclude"> Exclude flagged responses (reported a technical problem, reloaded mid-material, switched tabs during the material, or the narration didn't play through)
       </label>
+      <p class="small muted" style="margin:6px 0 0">Test runs (<code>TEST-</code> IDs) are always excluded. You can also exclude any single response with its checkbox in the table below; those choices are remembered in this browser only.</p>
       <p id="rMsg" class="small muted"></p>
     </div>
 
@@ -264,6 +305,7 @@
     <div class="card" id="summaryCard">
       <h2>Summary – all conditions compared</h2>
       <div class="kpis" id="kpis"></div>
+      <p id="exclLine" class="small muted"></p>
       <div id="chartWrap" style="margin-top:16px"><div id="tip" class="hidden"></div></div>
       <div class="tablewrap" style="margin-top:12px;max-height:none">
         <table id="groupTable"></table>
@@ -296,16 +338,55 @@ const CONFIG = {
    STUDY MATERIAL — one script, used word-for-word by every medium.
    The topic is fictional, so no participant has prior knowledge of it.
    ================================================================= */
+/* SEGMENTS-BEGIN */
+/* title  = heading (shown to the text group, spoken as "Part N. <title>" in the narration)
+   key    = one-line recap, read/heard at the end of the part
+   facts  = slide callouts for the narrated slideshow; `cue` = which spoken piece triggers them
+            (0 = part title, 1.. = each sentence of `text`, last = key point)
+   cues   = second each spoken piece starts in audio/part-N.m4a (generated by tools/make-audio.js) */
 const SEGMENTS = [
-  { pic: '🏝️🌊', text: 'Karsa Island lies in the cold northern sea, about 300 kilometres from the nearest coast. It is home to a rare insect called the lumen moth, which has never been found anywhere else on Earth.' },
-  { pic: '🦋✨', text: 'A lumen moth has silver wings about the size of a coin. On its back are exactly six blue spots that glow softly in the dark. Scientists use the pattern of these spots to tell individual moths apart.' },
-  { pic: '🌲🍯', text: 'Lumen moths do not visit flowers. Instead, they feed on the sap of just one kind of tree, the grey pine, which grows only on the eastern hills of the island.' },
-  { pic: '🦇🌙', text: 'The glow is not used to attract a mate. It warns predators, especially night-hunting bats, that the moth tastes bitter. Moths that glow more brightly are attacked less often.' },
-  { pic: '🥚🐛', text: 'An adult lumen moth lives for only nineteen days. Females lay their eggs in cracks in grey pine bark, and the caterpillars stay hidden inside the bark for almost two years.' },
-  { pic: '🎣⛈️', text: 'The moths were first described in 1974 by a fisherman named Tomas Brekk. He saw glowing lights in the forest while sheltering from a storm, and at first he thought the lights were ghosts.' },
-  { pic: '🍄🌲', text: 'Today there are about 4,000 lumen moths left. Their biggest threat is a fungus that kills grey pines. When the trees die, the moths lose both their food and the place where their young grow.' },
-  { pic: '❄️🌱', text: 'To protect the moths, visitors may only enter the eastern hills in winter, when the adults are not active. Volunteers also plant around 500 new grey pines every year.' }
+  { title: 'The island', art: 'island',
+    text: 'Karsa Island lies in the cold northern sea, about 300 kilometres from the nearest coast. It is home to a rare insect called the lumen moth, which has never been found anywhere else on Earth.',
+    key: 'the lumen moth lives only on Karsa Island.',
+    facts: [{ big: '300 km', label: 'to the nearest coast', cue: 1 }, { big: 'Only here', label: 'lumen moths live nowhere else on Earth', cue: 2 }],
+    dur: 18.6, cues: [0, 2.3, 8.3, 14.9] },
+  { title: 'The moth', art: 'moth',
+    text: 'A lumen moth has silver wings about the size of a coin. On its back are exactly six blue spots that glow softly in the dark. Scientists use the pattern of these spots to tell individual moths apart.',
+    key: 'six blue glowing spots.',
+    facts: [{ big: 'Coin-sized', label: 'silver wings', cue: 1 }, { big: '6 blue spots', label: 'that glow in the dark', cue: 2 }, { big: 'Spot pattern', label: 'tells one moth from another', cue: 3 }],
+    dur: 18.2, cues: [0, 2.1, 5.5, 10.1, 15.4] },
+  { title: 'Its food', art: 'food',
+    text: 'Lumen moths do not visit flowers. Instead, they feed on the sap of just one kind of tree, the grey pine, which grows only on the eastern hills of the island.',
+    key: 'the moths live on grey pine sap.',
+    facts: [{ big: 'Not flowers', label: 'they never visit them', cue: 1 }, { big: 'Grey pine sap', label: 'their only food', cue: 2 }, { big: 'Eastern hills', label: 'the only place grey pines grow', cue: 2 }],
+    dur: 16.4, cues: [0, 2.3, 4.6, 13.3] },
+  { title: 'The glow', art: 'glow',
+    text: 'The glow is not used to attract a mate. It warns predators, especially night-hunting bats, that the moth tastes bitter. Moths that glow more brightly are attacked less often.',
+    key: 'the glow is a warning.',
+    facts: [{ big: 'Not for mates', label: 'that is not what the glow is for', cue: 1 }, { big: 'A warning', label: 'the moth tastes bitter to bats', cue: 2 }, { big: 'Brighter glow', label: 'means attacked less often', cue: 3 }],
+    dur: 16.1, cues: [0, 2.3, 4.7, 10.1, 13.9] },
+  { title: 'Life cycle', art: 'life',
+    text: 'An adult lumen moth lives for only nineteen days. Females lay their eggs in cracks in grey pine bark, and the caterpillars stay hidden inside the bark for almost two years.',
+    key: 'nineteen days as an adult, almost two years as a caterpillar.',
+    facts: [{ big: '19 days', label: 'adult life', cue: 1 }, { big: 'Bark cracks', label: 'where the eggs are laid', cue: 2 }, { big: 'Almost 2 years', label: 'as a caterpillar hidden in the bark', cue: 2 }],
+    dur: 19, cues: [0, 2.6, 5.7, 13.8] },
+  { title: 'The discovery', art: 'discovery',
+    text: 'The moths were first described in 1974 by a fisherman named Tomas Brekk. He saw glowing lights in the forest while sheltering from a storm, and at first he thought the lights were ghosts.',
+    key: 'a fisherman found the moths in 1974.',
+    facts: [{ big: '1974', label: 'first described', cue: 1 }, { big: 'A fisherman', label: 'Tomas Brekk', cue: 1 }, { big: '“Ghosts?”', label: 'what he first thought the lights were', cue: 2 }],
+    dur: 19.4, cues: [0, 2.6, 8, 15.2] },
+  { title: 'The threat', art: 'threat',
+    text: 'Today there are about 4,000 lumen moths left. Their biggest threat is a fungus that kills grey pines. When the trees die, the moths lose both their food and the place where their young grow.',
+    key: 'a fungus is killing the grey pines.',
+    facts: [{ big: 'About 4,000', label: 'moths left today', cue: 1 }, { big: 'A fungus', label: 'kills the grey pines – the biggest threat', cue: 2 }, { big: 'No trees', label: 'means no food and no place for young', cue: 3 }],
+    dur: 17.6, cues: [0, 2.3, 5.5, 8.8, 14.3] },
+  { title: 'Protection', art: 'protect',
+    text: 'To protect the moths, visitors may only enter the eastern hills in winter, when the adults are not active. Volunteers also plant around 500 new grey pines every year.',
+    key: 'visitors only in winter, and 500 new pines every year.',
+    facts: [{ big: 'Winter only', label: 'the one season visitors may enter the eastern hills', cue: 1 }, { big: '500 new pines', label: 'planted by volunteers every year', cue: 2 }],
+    dur: 19.1, cues: [0, 2.3, 9, 14] }
 ];
+/* SEGMENTS-END */
 
 /* Same quiz for everyone: identical questions, identical order, identical options. */
 const QUESTIONS = [
@@ -326,9 +407,119 @@ const QUESTIONS = [
 const KEY_ENC = [2, 0, 2, 0, 1, 0, 2, 0, 2, 0, 3, 0];
 const answerKey = () => KEY_ENC.map((e, i) => (((e - 3 * i) % 4) + 4) % 4);
 
+/* =================================================================
+   SLIDE ARTWORK — one simple diagram per part (inline SVG, no external files).
+   Each drawing shows only things mentioned in the script.
+   ================================================================= */
+const mothSvg = (x, y, s, nums) => {
+  const spots = [[-17, -11], [-31, -1], [-21, 11], [17, -11], [31, -1], [21, 11]];
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="-26" cy="-2" rx="31" ry="19" transform="rotate(-18 -26 -2)" fill="#c9ced8" stroke="#8b92a3" stroke-width="1.5"/>
+    <ellipse cx="26" cy="-2" rx="31" ry="19" transform="rotate(18 26 -2)" fill="#c9ced8" stroke="#8b92a3" stroke-width="1.5"/>
+    <ellipse cx="0" cy="2" rx="5" ry="19" fill="#4a4f5c"/>
+    <path d="M-2 -16 Q-10 -30 -18 -32 M2 -16 Q10 -30 18 -32" stroke="#4a4f5c" stroke-width="1.6" fill="none"/>
+    ${spots.map(([cx, cy], i) => `<circle class="glow" cx="${cx}" cy="${cy}" r="9" fill="#2a78d6" opacity=".3"/><circle cx="${cx}" cy="${cy}" r="4.6" fill="#2a78d6"/>` +
+      (nums ? `<text x="${cx}" y="${cy + 2.6}" font-size="7" font-weight="700" text-anchor="middle" fill="#fff">${i + 1}</text>` : '')).join('')}
+  </g>`;
+};
+const pineSvg = (x, y, s, fill = '#2f6b4a') => `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-4" y="0" width="8" height="18" fill="#8a6a4a"/><polygon points="0,-46 -20,-14 20,-14" fill="${fill}"/><polygon points="0,-32 -24,2 24,2" fill="${fill}"/></g>`;
+const batSvg = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 0 C-10 -14 -30 -14 -44 -4 C-36 -6 -32 0 -28 7 C-21 1 -14 1 -8 7 C-4 3 4 3 8 7 C14 1 21 1 28 7 C32 0 36 -6 44 -4 C30 -14 10 -14 0 0Z" fill="#7d8498" stroke="#fff" stroke-width="1.5"/><polygon points="-5,-2 -3,-12 0,-3" fill="#7d8498" stroke="#fff" stroke-width="1"/><polygon points="5,-2 3,-12 0,-3" fill="#7d8498" stroke="#fff" stroke-width="1"/></g>`;
+const svgOpen = bg => `<svg viewBox="0 0 320 210" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif"><defs><marker id="ah" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" refX="8" refY="5.5" orient="auto-start-reverse"><path d="M0 0L11 5.5L0 11z" fill="#1a1a19"/></marker></defs><rect width="320" height="210" rx="12" fill="${bg}"/>`;
+const cross = (x, y, r, w = 5) => `<g stroke="#b3261e" stroke-width="${w}" stroke-linecap="round"><line x1="${x - r}" y1="${y - r}" x2="${x + r}" y2="${y + r}"/><line x1="${x + r}" y1="${y - r}" x2="${x - r}" y2="${y + r}"/></g>`;
+
+const ART = {
+  island: () => svgOpen('#d6e8f7') +
+    `<path d="M0 0H44C58 38 36 72 50 110C60 148 40 176 46 210H0Z" fill="#d9c9a3"/><text x="6" y="30" font-size="12" font-weight="700" fill="#6b5d3b">Coast</text>
+    <path d="M80 52q8-6 16 0t16 0M160 184q8-6 16 0t16 0M96 160q8-6 16 0t16 0M210 40q8-6 16 0t16 0" stroke="#9cc2e3" stroke-width="2" fill="none"/>
+    <ellipse cx="250" cy="116" rx="52" ry="34" fill="#8fc17c" stroke="#5c9a4e" stroke-width="2"/>${pineSvg(234, 104, .45)}${pineSvg(264, 108, .5)}
+    ${mothSvg(250, 58, .5)}<text x="250" y="86" font-size="11" text-anchor="middle" font-weight="700" fill="#1a1a19">lumen moth</text>
+    <line x1="60" y1="116" x2="194" y2="116" stroke="#1a1a19" stroke-width="2.5" stroke-dasharray="7 5" marker-start="url(#ah)" marker-end="url(#ah)"/>
+    <text x="127" y="104" font-size="22" font-weight="800" text-anchor="middle" fill="#1a1a19">300 km</text>
+    <text x="150" y="166" font-size="12" font-style="italic" text-anchor="middle" fill="#4f7aa3">cold northern sea</text>
+    <text x="250" y="170" font-size="14" font-weight="700" text-anchor="middle" fill="#1a1a19">Karsa Island</text></svg>`,
+
+  moth: () => svgOpen('#1f2a44') + mothSvg(112, 106, 1.55, true) +
+    `<circle cx="256" cy="84" r="26" fill="#e3b94a" stroke="#b48a1f" stroke-width="3"/><circle cx="256" cy="84" r="19" fill="none" stroke="#b48a1f" stroke-width="1.5"/>
+    <text x="256" y="89" font-size="13" font-weight="800" text-anchor="middle" fill="#7a5a10">coin</text>
+    <text x="256" y="130" font-size="12" text-anchor="middle" fill="#fff">wings are about</text><text x="256" y="146" font-size="12" text-anchor="middle" fill="#fff">this size</text>
+    <text x="112" y="190" font-size="13" font-weight="700" text-anchor="middle" fill="#9ec5f5">6 blue glowing spots</text></svg>`,
+
+  food: () => svgOpen('#e9f1e3') + pineSvg(70, 118, 1.7) +
+    `<path d="M66 138q-5 9 0 13q5-4 0-13zM76 146q-4 8 0 11q4-3 0-11z" fill="#e0a526"/>
+    <text x="70" y="188" font-size="12" font-weight="700" text-anchor="middle" fill="#1a1a19">grey pine</text>
+    ${mothSvg(168, 66, .7)}<path d="M146 84Q118 96 98 118" stroke="#1a1a19" stroke-width="2.2" fill="none" marker-end="url(#ah)"/>
+    <text x="146" y="126" font-size="12" font-weight="700" fill="#b17a0a">sap</text>
+    <g transform="translate(168 172)"><circle cx="0" cy="-7" r="5" fill="#f2a6c0"/><circle cx="7" cy="0" r="5" fill="#f2a6c0"/><circle cx="0" cy="7" r="5" fill="#f2a6c0"/><circle cx="-7" cy="0" r="5" fill="#f2a6c0"/><circle r="4" fill="#f2c230"/></g>${cross(168, 172, 14, 4)}
+    <ellipse cx="256" cy="120" rx="56" ry="42" fill="#cfe6c4" stroke="#8fb57f" stroke-width="2"/>
+    <path d="M256 78A56 42 0 0 1 256 162Z" fill="#2f6b4a"/>
+    <text x="284" y="118" font-size="11" font-weight="700" text-anchor="middle" fill="#fff">Eastern</text><text x="284" y="132" font-size="11" font-weight="700" text-anchor="middle" fill="#fff">hills</text>
+    <text x="226" y="124" font-size="11" text-anchor="middle" fill="#6b8560">West</text>
+    <text x="256" y="66" font-size="12" font-weight="700" text-anchor="middle" fill="#3a5a30">Karsa Island</text></svg>`,
+
+  glow: () => svgOpen('#1f2a44') +
+    `<circle class="glow" cx="196" cy="108" r="70" fill="none" stroke="#2a78d6" stroke-width="3" opacity=".35"/><circle class="glow" cx="196" cy="108" r="50" fill="#2a78d6" opacity=".12"/>` +
+    mothSvg(196, 108, 1.25) + batSvg(58, 62, 1) +
+    `<path d="M88 76Q126 92 150 100" stroke="#fff" stroke-width="2.2" stroke-dasharray="6 5" fill="none"/>
+    <circle cx="132" cy="92" r="13" fill="#b3261e"/><text x="132" y="98" font-size="17" font-weight="800" text-anchor="middle" fill="#fff">!</text>
+    <text x="58" y="96" font-size="12" font-weight="700" text-anchor="middle" fill="#fff">bat</text>
+    <rect x="216" y="14" width="96" height="30" rx="15" fill="#fff3c4"/><polygon points="240,44 252,44 246,58" fill="#fff3c4"/>
+    <text x="264" y="34" font-size="14" font-weight="800" text-anchor="middle" fill="#7a5a10">Bitter!</text>
+    <text x="44" y="172" font-size="34" text-anchor="middle" fill="#f2a6c0">♥</text>${cross(44, 162, 18, 4)}
+    <text x="44" y="196" font-size="11" text-anchor="middle" fill="#fff">not for mates</text></svg>`,
+
+  life: () => {
+    const cell = (x, n, name) => `<rect x="${x}" y="30" width="96" height="104" rx="10" fill="#fff" stroke="#e2e1dc" stroke-width="2"/><text x="${x + 48}" y="22" font-size="13" font-weight="800" text-anchor="middle" fill="#1a1a19">${n} ${name}</text>`;
+    const bark = x => `<rect x="${x}" y="58" width="76" height="62" rx="6" fill="#8a6a4a"/>`;
+    const arrow = x => `<path d="M${x} 82h14" stroke="#1a1a19" stroke-width="2.5" marker-end="url(#ah)"/>`;
+    const worm = [134, 147, 160, 173, 186].map((cx, i) => `<circle cx="${cx}" cy="${92 - (i % 2) * 3}" r="8.5" fill="${i === 4 ? '#6f9a4a' : '#9ccf6f'}" stroke="#5f9140" stroke-width="1.5"/>`).join('');
+    return svgOpen('#f5efe3') + cell(8, 1, 'Egg') + cell(112, 2, 'Caterpillar') + cell(216, 3, 'Adult') +
+      bark(18) + `<path d="M56 60L50 82L61 98L54 118" stroke="#3b2a1a" stroke-width="5" fill="none" stroke-linejoin="round"/><ellipse cx="56" cy="90" rx="7" ry="10" fill="#f6f1df" stroke="#c9c3a8" stroke-width="1.5"/>
+      ${bark(122)}${worm}${mothSvg(264, 92, .7)}${arrow(106)}${arrow(210)}
+      <text x="56" y="158" font-size="13" font-weight="800" text-anchor="middle">bark cracks</text><text x="56" y="175" font-size="11" text-anchor="middle" fill="#6b6a66">eggs are laid</text>
+      <text x="160" y="158" font-size="15" font-weight="800" text-anchor="middle" fill="#1a7a4c">almost 2 years</text><text x="160" y="175" font-size="11" text-anchor="middle" fill="#6b6a66">hidden inside the bark</text>
+      <text x="264" y="158" font-size="15" font-weight="800" text-anchor="middle" fill="#b3261e">19 days</text><text x="264" y="175" font-size="11" text-anchor="middle" fill="#6b6a66">adult life</text></svg>`;
+  },
+
+  discovery: () => svgOpen('#27344d') +
+    `<text x="16" y="46" font-size="34" font-weight="800" fill="#fff">1974</text>
+    <g fill="#aab3c5"><ellipse cx="236" cy="34" rx="26" ry="14"/><ellipse cx="258" cy="40" rx="24" ry="12"/><ellipse cx="216" cy="42" rx="20" ry="10"/></g>
+    <polygon points="240,50 230,76 242,76 234,98 258,68 246,68 254,50" fill="#ffd23f"/>` +
+    [[112, 160], [152, 154], [196, 160], [240, 152], [284, 160]].map(([x, y]) => pineSvg(x, y, .9, '#1f4a35')).join('') +
+    [[160, 124], [206, 130], [262, 120]].map(([x, y]) => `<circle class="glow" cx="${x}" cy="${y}" r="10" fill="#6fb1ff" opacity=".4"/><circle cx="${x}" cy="${y}" r="4" fill="#9ed0ff"/>`).join('') +
+    `<ellipse cx="48" cy="156" rx="17" ry="24" fill="#e0a526"/><circle cx="48" cy="120" r="10" fill="#f0c9a0"/><path d="M36 118Q48 102 60 118Z" fill="#f2c230"/>
+    <text x="48" y="196" font-size="11" font-weight="700" text-anchor="middle" fill="#fff">Tomas Brekk</text>
+    <ellipse cx="100" cy="86" rx="32" ry="16" fill="#fff"/><circle cx="76" cy="104" r="4" fill="#fff"/><circle cx="68" cy="112" r="2.5" fill="#fff"/>
+    <text x="100" y="91" font-size="13" font-weight="700" text-anchor="middle" fill="#27344d">ghosts?</text></svg>`,
+
+  threat: () => {
+    const cell = (x, label, l2) => `<rect x="${x}" y="34" width="92" height="106" rx="10" fill="#fff" stroke="#e2e1dc" stroke-width="2"/><text x="${x + 46}" y="164" font-size="13" font-weight="800" text-anchor="middle">${label}</text>` +
+      (l2 ? `<text x="${x + 46}" y="181" font-size="13" font-weight="800" text-anchor="middle">${l2}</text>` : '');
+    const arrow = x => `<path d="M${x} 88h12" stroke="#1a1a19" stroke-width="2.5" marker-end="url(#ah)"/>`;
+    return svgOpen('#f3ece6') + cell(8, 'A fungus') + cell(114, 'Pines die') + cell(220, 'No food,', 'no nursery') + arrow(101) + arrow(207) +
+      `<path d="M28 108A26 26 0 0 1 80 108Z" fill="#c0504d"/><circle cx="42" cy="98" r="3.5" fill="#fff"/><circle cx="58" cy="92" r="3.5" fill="#fff"/><circle cx="68" cy="102" r="3" fill="#fff"/><rect x="48" y="108" width="12" height="20" rx="3" fill="#efe3d0" stroke="#c9b99b"/>
+      <g stroke="#6b5640" stroke-width="4" stroke-linecap="round"><line x1="160" y1="128" x2="160" y2="62"/><line x1="160" y1="98" x2="142" y2="80"/><line x1="160" y1="86" x2="180" y2="68"/><line x1="160" y1="112" x2="146" y2="102"/></g>
+      ${mothSvg(266, 92, .6)}${cross(266, 90, 28, 6)}</svg>`;
+  },
+
+  protect: () => {
+    const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
+    const tiles = seasons.map((n, i) => {
+      const x = 8 + i * 78, win = i === 3, cx = x + 35;
+      return `<rect x="${x}" y="26" width="70" height="80" rx="10" fill="${win ? '#cfe3f8' : '#e6e5e0'}" stroke="${win ? '#2a78d6' : '#e6e5e0'}" stroke-width="3"/>
+        <text x="${cx}" y="98" font-size="13" font-weight="800" text-anchor="middle" fill="${win ? '#1a1a19' : '#8a8983'}">${n}</text>` +
+        (win ? `<g stroke="#2a78d6" stroke-width="3" stroke-linecap="round"><line x1="${cx}" y1="40" x2="${cx}" y2="72"/><line x1="${cx - 14}" y1="47" x2="${cx + 14}" y2="65"/><line x1="${cx + 14}" y1="47" x2="${cx - 14}" y2="65"/></g>
+          <text x="${x + 58}" y="42" font-size="18" font-weight="800" fill="#0f7a3d">✓</text>`
+             : `<text x="${cx}" y="72" font-size="30" font-weight="800" text-anchor="middle" fill="#b9b8b2">✗</text>`);
+    }).join('');
+    return svgOpen('#eaf2fa') + `<text x="8" y="17" font-size="11" font-weight="700" fill="#52514e">When visitors may enter the eastern hills</text>` + tiles +
+      [60, 110, 160, 210, 260].map(x => pineSvg(x, 152, .55, '#3f9a66')).join('') +
+      `<text x="160" y="196" font-size="14" font-weight="800" text-anchor="middle" fill="#1a1a19">500 new grey pines every year</text></svg>`;
+  }
+};
+
 const MEDIA = {
   text:  { label: 'Reading (text)', short: 'Text', how: 'The information will appear on screen as written text. Read it carefully – each part stays on screen for a fixed time.', color: 'var(--series-text)', hex: '#2a78d6' },
-  video: { label: 'Narrated slideshow (video)', short: 'Video', how: 'You will watch a slideshow of pictures while a voice narrates the information. Keep your sound on.', color: 'var(--series-video)', hex: '#eb6834' },
+  video: { label: 'Narrated slideshow (video)', short: 'Video', how: 'You will watch a slideshow of diagrams and key facts while a voice narrates the information. Keep your sound on.', color: 'var(--series-video)', hex: '#eb6834' },
   audio: { label: 'Listening (audio)', short: 'Audio', how: 'You will listen to a voice narrating the information. There is nothing to read – just listen carefully. Keep your sound on.', color: 'var(--series-audio)', hex: '#1baf7a' }
 };
 const MEDIA_ORDER = ['text', 'video', 'audio'];
@@ -337,8 +528,11 @@ const HEADERS = ['medium', 'score', 'total', 'percent', 'timestamp', 'name', 'pa
   'tech_issue', 'assignment_source', 'answers', 'received_at'];
 
 const TOTAL_SECONDS = SEGMENTS.length * CONFIG.SEGMENT_SECONDS;
+const QUICK_SEGMENT_SECONDS = 8;   // test runs only
 const DEMO = !CONFIG.SCRIPT_URL;
 const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const isTest = r => String(r.participant_id).startsWith('TEST-');
 const fmtTime = s => `${Math.floor(s / 60)} min ${String(Math.round(s % 60)).padStart(2, '0')} s`;
 
 document.querySelectorAll('.exposure').forEach(e => e.textContent = fmtTime(TOTAL_SECONDS));
@@ -457,9 +651,11 @@ function download(filename, content, type = 'text/csv;charset=utf-8') {
 // Session state survives a page reload, so a participant can't re-roll their group.
 let S = JSON.parse(sessionStorage.getItem('csp_state') || 'null');
 const saveState = () => sessionStorage.setItem('csp_state', JSON.stringify(S));
-const newId = () => 'P-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+const newId = (test) => (test ? 'TEST-' : 'P-') + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+const segSeconds = () => (S && S.segSec) || CONFIG.SEGMENT_SECONDS;
 
 function show(section) {
+  $('testBanner').classList.toggle('hidden', !(S && S.test));
   ['s-welcome', 's-assign', 's-learn', 's-quiz', 's-result'].forEach(id => $(id).classList.toggle('hidden', id !== section));
   const order = ['assign', 'learn', 'quiz', 'result'];
   const cur = { 's-welcome': -1, 's-assign': 0, 's-learn': 1, 's-quiz': 2, 's-result': 3 }[section];
@@ -473,17 +669,41 @@ function show(section) {
 
 $('btnStart').onclick = async () => {
   $('btnStart').disabled = true;
-  $('startMsg').textContent = 'Assigning you to a group…';
-  const a = await Store.assign();
+  const test = location.hash === '#test';
+  // Test runs pick their own medium and never touch the server's balanced rotation.
+  let a;
+  if (test) a = { medium: $('testMedium').value, source: 'test' };
+  else { $('startMsg').textContent = 'Assigning you to a group…'; a = await Store.assign(); }
   S = {
-    pid: newId(), name: $('nameInput').value.trim(), medium: a.medium, source: a.source,
+    pid: newId(test), name: $('nameInput').value.trim(), medium: a.medium, source: a.source, test,
+    segSec: test && $('testSpeed').value === 'quick' ? QUICK_SEGMENT_SECONDS : CONFIG.SEGMENT_SECONDS,
     stage: 'assign', interrupted: 0, tabSwitches: 0, overruns: 0
   };
   saveState();
   renderAssign();
 };
 
-/* ---------- Speech (narration for video + audio) ---------- */
+/* ---------- Narration (video + audio) ----------
+   Pre-recorded files in /audio give every participant the same voice and timing on every device.
+   If a file can't be played, the browser's built-in speech voice is used as a fallback. */
+const narr = new Audio();
+let narrToken = 0;
+const audioSrc = k => `audio/part-${k + 1}.m4a`;
+/** Resolves true if narration started (file or fallback voice), false if neither worked. */
+function narrate(src, fallbackText) {
+  const id = ++narrToken;
+  narr.src = src;
+  return narr.play().then(() => true).catch(() => {
+    if (id !== narrToken) return true;   // stopped on purpose meanwhile
+    if (hasSpeech && fallbackText) { speak(fallbackText); return true; }
+    return false;
+  });
+}
+function stopNarration() { narrToken++; narr.pause(); if (hasSpeech) speechSynthesis.cancel(); }
+const isNarrating = () => (!narr.paused && !narr.ended) || (hasSpeech && speechSynthesis.speaking);
+// Spoken text of a part, used only for the fallback voice.
+const spokenText = (seg, k) => `Part ${k + 1}. ${seg.title}. ${seg.text} Key point: ${seg.key}`;
+
 const hasSpeech = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
 let voice = null;
 function pickVoice() {
@@ -511,17 +731,22 @@ function renderAssign() {
   $('assignHow').textContent = m.how;
   const needsSound = S.medium !== 'text';
   $('soundCheck').classList.toggle('hidden', !needsSound);
-  $('noSpeech').classList.toggle('hidden', !needsSound || hasSpeech);
-  $('btnTestSound').disabled = !hasSpeech;
+  $('noSpeech').classList.add('hidden');
+  if (needsSound) ['audio/check.m4a', ...SEGMENTS.map((_, k) => audioSrc(k))].forEach(u => fetch(u).catch(() => {}));   // warm the cache
   const sync = () => { $('btnBegin').disabled = needsSound && !$('chkHeard').checked; };
   $('chkHeard').checked = false; $('chkHeard').onchange = sync; sync();
   show('s-assign');
 }
-$('btnTestSound').onclick = () => { speechSynthesis.cancel(); speak('This is a sound check. If you can hear this clearly, you are ready.'); };
+$('btnTestSound').onclick = () => {
+  stopNarration();
+  narrate('audio/check.m4a', 'This is a sound check. If you can hear this clearly, you are ready.')
+    .then(ok => $('noSpeech').classList.toggle('hidden', ok));
+};
 
 $('btnBegin').onclick = () => {
-  // Starting speech inside a tap "unlocks" narration on phones/iPads.
-  if (hasSpeech && S.medium !== 'text') { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); }
+  stopNarration();
+  // Starting speech inside a tap "unlocks" the fallback voice on phones/iPads (the audio element is unlocked by the play() below).
+  if (hasSpeech && S.medium !== 'text') { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); }
   S.stage = 'learn'; saveState();
   runLearning();
 };
@@ -532,10 +757,11 @@ function renderSegment(k) {
   const seg = SEGMENTS[k], stage = $('stage');
   $('partLabel').textContent = `Part ${k + 1} of ${SEGMENTS.length}`;
   if (S.medium === 'text') {
-    stage.innerHTML = '<p class="passage"></p>';
-    stage.firstChild.textContent = seg.text;
+    stage.innerHTML = `<div class="passage"><h3 class="ptitle">${seg.title}</h3><p>${seg.text}</p><p class="keypt"><b>Key point:</b> ${seg.key}</p></div>`;
   } else if (S.medium === 'video') {
-    stage.innerHTML = `<div class="pic" aria-hidden="true">${seg.pic}</div>`;
+    stage.innerHTML = `<div class="slide"><div class="slide-title"><span class="num">${k + 1}</span>${seg.title}</div>
+      <div class="slide-body"><div class="art" role="img" aria-label="${seg.title} diagram">${ART[seg.art]()}</div>
+      <ul class="facts">${seg.facts.map(f => `<li class="fact" data-at="${seg.cues[f.cue]}"><b>${f.big}</b><span>${f.label}</span></li>`).join('')}</ul></div></div>`;
   } else {
     stage.innerHTML = '<div class="pulse" aria-hidden="true">🎧</div><p class="muted">Listen carefully…</p>';
   }
@@ -543,16 +769,17 @@ function renderSegment(k) {
 function runLearning() {
   show('s-learn');
   const start = Date.now();
+  const segSec = segSeconds(), total = segSec * SEGMENTS.length;
   let cur = -1;
   const onVis = () => { if (document.hidden) { S.tabSwitches++; saveState(); } };
   document.addEventListener('visibilitychange', onVis);
   const tick = () => {
     const el = (Date.now() - start) / 1000;
-    const k = Math.floor(el / CONFIG.SEGMENT_SECONDS);
+    const k = Math.floor(el / segSec);
     if (k !== cur) {
-      if (hasSpeech && S.medium !== 'text') {
-        if (cur >= 0 && speechSynthesis.speaking) { S.overruns++; saveState(); }
-        speechSynthesis.cancel();
+      if (S.medium !== 'text') {
+        if (cur >= 0 && isNarrating()) { S.overruns++; saveState(); }   // previous part was cut off
+        stopNarration();
       }
       if (k >= SEGMENTS.length) {
         clearInterval(learnTimer);
@@ -563,11 +790,18 @@ function runLearning() {
       }
       cur = k;
       renderSegment(k);
-      if (S.medium !== 'text') speak(SEGMENTS[k].text);
+      if (S.medium !== 'text') {
+        narrate(audioSrc(k), spokenText(SEGMENTS[k], k)).then(ok => { if (!ok) { S.overruns++; saveState(); } });   // nothing could play
+      }
+    }
+    // Slide callouts appear as the narrator reaches them (cues are scaled for quick test runs).
+    if (S.medium === 'video') {
+      const t = (el - k * segSec) * (CONFIG.SEGMENT_SECONDS / segSec);
+      document.querySelectorAll('.fact:not(.on)').forEach(f => { if (t >= Number(f.dataset.at) - 0.2) f.classList.add('on'); });
     }
     if (hasSpeech && speechSynthesis.paused) speechSynthesis.resume(); // Chrome occasionally stalls
-    $('timerFill').style.width = Math.min(100, (el / TOTAL_SECONDS) * 100) + '%';
-    $('timeLeft').textContent = `${Math.max(0, Math.ceil(TOTAL_SECONDS - el))} s left`;
+    $('timerFill').style.width = Math.min(100, (el / total) * 100) + '%';
+    $('timeLeft').textContent = `${Math.max(0, Math.ceil(total - el))} s left`;
   };
   learnTimer = setInterval(tick, 200);
   tick();
@@ -636,6 +870,7 @@ function showResult() {
   const r = S.record;
   $('scoreBig').textContent = `${r.score} / ${r.total}`;
   $('scorePct').textContent = `${r.percent}% correct`;
+  $('testNote').classList.toggle('hidden', !S.test);
   show('s-result');
   if (S.saved) setSaved(); else trySave();
 }
@@ -688,6 +923,9 @@ function route() {
   const isResults = location.hash === '#results';
   $('participant').classList.toggle('hidden', isResults);
   $('researcher').classList.toggle('hidden', !isResults);
+  const testing = location.hash === '#test';
+  $('testPanel').classList.toggle('hidden', !testing);
+  $('btnStart').textContent = testing ? 'Start test run' : 'Start – assign me to a group';
   if (isResults) {
     if (DEMO || adminKey()) loadResults();
     else { $('r-login').classList.remove('hidden'); $('r-body').classList.add('hidden'); }
@@ -726,8 +964,21 @@ function normalise(r) {
     .forEach(h => { if (o[h] !== '' && !isNaN(Number(o[h]))) o[h] = Number(o[h]); });
   return o;
 }
-const isFlagged = r => r.tech_issue === 'yes' || Number(r.interrupted) > 0 || Number(r.tab_switches) > 0;
-const activeRows = () => $('chkExclude').checked ? rows.filter(r => !isFlagged(r)) : rows;
+const isFlagged = r => r.tech_issue === 'yes' || Number(r.interrupted) > 0 || Number(r.tab_switches) > 0 || Number(r.speech_overruns) > 0;
+
+// Responses left out of every statistic, chart and CSV. Manual picks live in this browser only.
+const Excl = {
+  get: () => new Set(JSON.parse(localStorage.getItem('csp_excluded') || '[]')),
+  set(pid, on) { const s = Excl.get(); on ? s.add(pid) : s.delete(pid); localStorage.setItem('csp_excluded', JSON.stringify([...s])); }
+};
+/** '' if the response counts, otherwise why it doesn't: 'test' | 'manual' | 'flagged'. */
+function exclusionReason(r, manual = Excl.get()) {
+  if (isTest(r)) return 'test';
+  if (manual.has(String(r.participant_id))) return 'manual';
+  if ($('chkExclude').checked && isFlagged(r)) return 'flagged';
+  return '';
+}
+const activeRows = () => { const m = Excl.get(); return rows.filter(r => !exclusionReason(r, m)); };
 
 /* ---------- Statistics ---------- */
 const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : NaN;
@@ -788,6 +1039,11 @@ function renderResults() {
   const data = activeRows();
   const stats = groupStats(data);
   const excluded = rows.length - data.length;
+  const why = { test: 0, manual: 0, flagged: 0 };
+  const manual = Excl.get();
+  rows.forEach(r => { const w = exclusionReason(r, manual); if (w) why[w]++; });
+  const parts = [why.test && `${why.test} test run${why.test > 1 ? 's' : ''}`, why.manual && `${why.manual} excluded by hand`, why.flagged && `${why.flagged} flagged`].filter(Boolean);
+  $('exclLine').textContent = excluded ? `Left out of all stats and CSVs: ${parts.join(', ')}.` : '';
 
   $('kpis').innerHTML =
     `<div class="kpi"><div class="v">${data.length}</div><div class="l">Total responses${excluded ? ` (${excluded} excluded)` : ''}</div></div>` +
@@ -821,13 +1077,22 @@ function renderResults() {
 function renderRaw() {
   const sorted = [...rows].sort((x, y) => String(y.timestamp).localeCompare(String(x.timestamp)));
   $('rawCount').textContent = rows.length;
-  const cols = HEADERS;
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  $('rawTable').innerHTML = '<tr><th>#</th>' + cols.map(c => `<th>${c}</th>`).join('') + '<th>flagged</th></tr>' +
-    sorted.map((r, i) => `<tr><td class="num">${sorted.length - i}</td>` +
-      cols.map(c => `<td${typeof r[c] === 'number' ? ' class="num"' : ''}>${esc(r[c])}</td>`).join('') +
-      `<td>${isFlagged(r) ? '⚑ yes' : ''}</td></tr>`).join('');
+  const cols = HEADERS, manual = Excl.get();
+  $('rawTable').innerHTML = '<tr><th>Exclude</th><th>#</th>' + cols.map(c => `<th>${c}</th>`).join('') + '<th>flagged</th></tr>' +
+    sorted.map((r, i) => {
+      const why = exclusionReason(r, manual), pid = esc(r.participant_id);
+      return `<tr class="${why ? 'excl' : ''}"><td><input type="checkbox" data-pid="${pid}" ${why === 'test' || why === 'manual' ? 'checked' : ''} ${why === 'test' ? 'disabled title="Test runs are always excluded"' : ''} aria-label="Exclude ${pid}"></td>` +
+        `<td class="num">${sorted.length - i}</td>` +
+        cols.map(c => `<td${typeof r[c] === 'number' ? ' class="num"' : ''}>${esc(r[c])}</td>`).join('') +
+        `<td>${why === 'test' ? 'test run' : isFlagged(r) ? '⚑ yes' : ''}</td></tr>`;
+    }).join('');
 }
+$('rawTable').addEventListener('change', e => {
+  const pid = e.target.dataset && e.target.dataset.pid;
+  if (!pid) return;
+  Excl.set(pid, e.target.checked);
+  renderResults();
+});
 
 /* Column chart: mean % per medium, ±1 SE. Explicit colours so the PNG export matches. */
 function drawChart(stats, n) {

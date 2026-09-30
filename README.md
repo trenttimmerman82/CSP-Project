@@ -16,6 +16,8 @@ Files:
 
 - `index.html`: the whole website (participant flow and researcher results view)
 - `apps-script/Code.gs`: the cloud data store (Google Apps Script, which writes to a Google Sheet you own)
+- `audio/`: pre-recorded narration (one file per part, plus the sound check)
+- `tools/make-audio.js`: regenerates `audio/` from the script in `index.html` (macOS only). Run `node tools/make-audio.js` after any wording change and paste the printed `dur`/`cues` values into `SEGMENTS`
 
 ---
 
@@ -52,7 +54,15 @@ On GitHub, go to **Settings → Pages → Source: Deploy from a branch → `main
 - The results view is at the same link plus `#results`. It is protected by `ADMIN_KEY`.
 - To test without a data store, open `index.html` directly. Demo mode saves data to that browser only.
 
-## 2. Running sessions
+## 2. Test runs
+
+Open the site with **`#test`** on the end of the link (or click **Test run** in the footer). You can pick the medium and a **Quick** speed (8 s per part instead of 24 s), so you can check all three conditions in a couple of minutes.
+
+- A test run is **saved to your Google Sheet** with a `TEST-` participant ID, so you can confirm saving works end to end.
+- It **never counts**: test rows are left out of every statistic, chart and CSV, and they don't use up a turn in the balanced random assignment.
+- Quick mode cuts the narration short, which is expected. Use **Full length** to hear it as participants will.
+
+## 3. Running sessions
 
 - Participants open the link, optionally type their initials, and press **Start**. After that everything runs on its own: assignment → material → quiz → result.
 - Participants in the audio and video groups do a sound check first. Headphones help a lot in a classroom.
@@ -60,7 +70,7 @@ On GitHub, go to **Settings → Pages → Source: Deploy from a branch → `main
 - **If saving fails** (network or school-filter problems), the participant sees **Download my result**, which saves a one-row CSV. Collect those files and use **Import backup file(s)** on the results page. Duplicates are ignored automatically. The device also retries saving in the background the next time the page is opened.
 - Participants never see the correct answers or the hypothesis. The result screen asks them not to share the questions.
 
-## 3. Results and analysis
+## 4. Results and analysis
 
 The results page (`#results`) shows:
 
@@ -71,7 +81,13 @@ The results page (`#results`) shows:
 - a one-way ANOVA line: F, df and p
 - the raw table of every response
 
-It also has a checkbox to exclude flagged responses, for your Evaluation section.
+Excluding responses:
+
+- **Test runs** (`TEST-` IDs) are always excluded.
+- **Exclude flagged responses** (checkbox) drops anyone who reported a technical problem, reloaded mid-material, switched tabs, or whose narration didn't play through.
+- **Any single response** can be excluded with the checkbox at the start of its row in the table. The page shows how many were left out and why. These manual picks are stored in **that browser only**, so use the same browser when you export your final numbers.
+
+Excluded responses stay in the Google Sheet. They are just left out of the page's statistics, chart and CSV downloads.
 
 **CSV – all data** gives one row per participant in long format. The first columns are `medium, score, total, percent`, followed by the timestamp, name and quality-control fields.
 
@@ -94,16 +110,17 @@ Compare your spreadsheet's F and p with the numbers on the results page as a cro
 | `exposure_seconds` | measured time spent on the material (should be about 192 for everyone, which is evidence the control worked) |
 | `quiz_seconds` | time taken on the quiz |
 | `tab_switches` | times they left the tab during the material |
-| `speech_overruns` | narration parts that hadn't finished when the time ran out (should be 0) |
+| `speech_overruns` | narration parts that were cut off or couldn't play (should be 0; flagged if not) |
 | `interrupted` | 1 if they reloaded partway through the material, which restarts it |
 | `tech_issue` | self-reported technical problem (`yes` / `no`) |
 | `assignment_source` | `server-block` (balanced randomisation), or `local-random` if the server couldn't be reached |
 | `answers` | letters chosen for Q1–Q12 |
 
-## 4. Points for your Evaluation slide
+## 5. Points for your Evaluation slide
 
-- Narration uses each device's built-in text-to-speech voice, so voice quality varies slightly between devices. The words and timing do not change.
-- The "video" condition is a narrated slideshow of illustrative pictures, not recorded footage.
+- Narration is pre-recorded (a computer voice), so every participant hears the same voice at the same pace. If a file fails to load, the device's built-in voice is used instead and the response is flagged.
+- The "video" condition is a narrated slideshow: a title, a simple diagram and key-fact callouts that appear as the narrator reaches each point (signalling). The callouts show key terms, not the full script, so the slides add to the narration rather than repeating it. Only facts from the script are shown.
+- Every part ends with a one-line "key point" in all three formats, which gives each group the same repetition.
 - Participants in the text condition can re-read within each 24-second part. That is a property of the medium, not a flaw, but you should mention it.
 - Immediate recall only. No delayed retention test.
 - Sample size and random assignment are limitations: small groups mean the ANOVA has low statistical power.
