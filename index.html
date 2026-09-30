@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learning &amp; Memory Study</title>
+<style>
+  :root {
+    --bg: #f4f4f1;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-3: #8a8983;
+    --line: #e2e1dc;
+    --accent: #2a78d6;
+    --good: #0f7a3d;
+    --bad: #b3261e;
+    --series-text: #2a78d6;
+    --series-video: #eb6834;
+    --series-audio: #1baf7a;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--ink);
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 16px 16px 48px; }
+  main.wide { max-width: 1100px; }
+  h1 { font-size: 1.6rem; margin: 8px 0 4px; }
+  h2 { font-size: 1.25rem; margin: 0 0 8px; }
+  h3 { font-size: 1rem; margin: 16px 0 6px; }
+  p { margin: 8px 0; }
+  .muted { color: var(--ink-2); }
+  .small { font-size: .88rem; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px; margin: 16px 0;
+  }
+  .hidden { display: none !important; }
+  button, .btn {
+    font: inherit; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--accent); background: var(--accent); color: #fff;
+    padding: 10px 18px; border-radius: 8px; text-decoration: none; display: inline-block;
+  }
+  button.secondary, .btn.secondary { background: transparent; color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  input[type=text], input[type=password] {
+    font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px;
+    width: 100%; max-width: 320px; background: #fff;
+  }
+  label.field { display: block; font-weight: 600; margin-top: 12px; }
+
+  /* Step indicator: Assignment → Material → Quiz → Result */
+  .steps { display: flex; gap: 6px; list-style: none; padding: 0; margin: 12px 0 0; counter-reset: s; }
+  .steps li {
+    flex: 1; text-align: center; font-size: .82rem; color: var(--ink-3);
+    border-top: 4px solid var(--line); padding-top: 6px;
+  }
+  .steps li::before { counter-increment: s; content: counter(s) ". "; }
+  .steps li.done { color: var(--ink-2); border-color: #9cc0ea; }
+  .steps li.active { color: var(--ink); font-weight: 700; border-color: var(--accent); }
+
+  ol.flow { padding-left: 20px; }
+  ol.flow li { margin: 4px 0; }
+  .control-box {
+    border-left: 4px solid var(--accent); background: #eef4fc; padding: 12px 14px;
+    border-radius: 0 8px 8px 0; margin: 12px 0;
+  }
+  .banner { background: #fff4d6; border: 1px solid #eeda9c; padding: 10px 14px; border-radius: 8px; margin-top: 12px; font-size: .9rem; }
+
+  /* Learning stage */
+  .stage { min-height: 320px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+  .stage .passage { font-size: 1.25rem; line-height: 1.7; text-align: left; max-width: 620px; }
+  .stage .pic { font-size: 6rem; line-height: 1.2; }
+  .stage .pulse { font-size: 4rem; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: scale(1.12); opacity: .7; } }
+  .timerbar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+  .timerbar > div { height: 100%; width: 0; background: var(--accent); transition: width .2s linear; }
+
+  /* Quiz */
+  fieldset.q { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin: 12px 0; background: #fff; }
+  fieldset.q legend { font-weight: 700; padding: 0 4px; }
+  fieldset.q label { display: block; padding: 8px 6px; border-radius: 6px; cursor: pointer; }
+  fieldset.q label:hover { background: #f1f5fb; }
+  fieldset.q input { margin-right: 8px; }
+
+  .score { font-size: 3rem; font-weight: 800; margin: 4px 0; }
+  .status-ok { color: var(--good); font-weight: 600; }
+  .status-bad { color: var(--bad); font-weight: 600; }
+
+  /* Results */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .kpi { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .kpi .v { font-size: 1.7rem; font-weight: 800; }
+  .kpi .l { font-size: .85rem; color: var(--ink-2); }
+  .kpi .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; white-space: nowrap; }
+  th { background: #f0efea; position: sticky; top: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tablewrap { overflow: auto; max-height: 520px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  #chartWrap { position: relative; }
+  #chartWrap svg { width: 100%; height: auto; display: block; }
+  #tip {
+    position: absolute; pointer-events: none; background: #1a1a19; color: #fff; font-size: .85rem;
+    padding: 8px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -110%);
+  }
+  .anova { font-variant-numeric: tabular-nums; }
+  footer { text-align: center; margin-top: 24px; font-size: .8rem; }
+  footer a { color: var(--ink-3); }
+</style>
+</head>
+<body>
+
+<!-- ====================== PARTICIPANT VIEW ====================== -->
+<main id="participant">
+  <header>
+    <h1>Learning &amp; Memory Study</h1>
+    <ol class="steps" id="steps">
+      <li data-step="assign">Assignment</li>
+      <li data-step="learn">Learning material</li>
+      <li data-step="quiz">Quiz</li>
+      <li data-step="result">Result</li>
+    </ol>
+    <div id="demoBanner" class="banner hidden">
+      <b>Demo mode:</b> no cloud data store is connected yet, so results are saved only in this browser.
+      Set <code>SCRIPT_URL</code> in index.html before collecting real data (see README).
+    </div>
+  </header>
+
+  <!-- Welcome -->
+  <section id="s-welcome" class="card">
+    <h2>Welcome</h2>
+    <p>This study looks at how people remember new information. It takes about <b>6 minutes</b>.</p>
+    <h3>What will happen</h3>
+    <ol class="flow">
+      <li><b>Assignment</b> – the website randomly places you in one of three groups. You don't choose.</li>
+      <li><b>Learning material</b> – you receive a short piece of information about an animal in one format. It plays automatically for a fixed time (<span class="exposure"></span>).</li>
+      <li><b>Quiz</b> – you answer <span class="qcount"></span> multiple-choice questions about it straight away.</li>
+      <li><b>Result</b> – you see your score, and it is saved automatically.</li>
+    </ol>
+    <div class="control-box">
+      <b>How this study is kept fair (controlled variables):</b>
+      every participant gets <b>exactly the same information</b> (the same script, word for word, in the same
+      <span class="segcount"></span> parts), for <b>exactly the same total time</b> (<span class="exposure"></span>, <span class="segsec"></span> s per part,
+      advancing automatically with no pausing or replaying), and then takes <b>the identical quiz</b>.
+      The only thing that differs between groups is the <b>format</b> the information is presented in.
+    </div>
+    <p class="small muted">Please do the study on your own, without notes. If you are in a listening or video group you will need sound (headphones are best).
+      Participation is voluntary; only your initials (optional) and quiz answers are recorded.</p>
+    <label class="field" for="nameInput">Name or initials (optional)</label>
+    <input type="text" id="nameInput" maxlength="40" autocomplete="off" placeholder="e.g. J.S.">
+    <div class="row" style="margin-top:16px">
+      <button id="btnStart">Start – assign me to a group</button>
+      <span id="startMsg" class="small muted"></span>
+    </div>
+  </section>
+
+  <!-- Assignment -->
+  <section id="s-assign" class="card hidden">
+    <h2>Step 1 · Your group</h2>
+    <p>You have been randomly assigned to:</p>
+    <p style="font-size:1.5rem;font-weight:800;margin:4px 0" id="assignLabel"></p>
+    <p id="assignHow"></p>
+    <p class="muted small">The material has <span class="segcount"></span> parts and lasts <span class="exposure"></span> in total. It moves on by itself – you can't pause, go back or replay, so pay attention the whole time. Don't take notes.</p>
+    <div id="soundCheck" class="hidden">
+      <h3>Sound check</h3>
+      <p class="small">Turn your volume up (or put headphones on), then press the button. You should hear a short sentence.</p>
+      <div class="row">
+        <button class="secondary" id="btnTestSound">▶ Play test sound</button>
+        <label><input type="checkbox" id="chkHeard"> I can hear it clearly</label>
+      </div>
+      <p id="noSpeech" class="status-bad hidden">This browser can't play the narration. Please open this link in Chrome, Edge or Safari on another device.</p>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button id="btnBegin">I'm ready – begin</button>
+    </div>
+  </section>
+
+  <!-- Learning -->
+  <section id="s-learn" class="card hidden">
+    <div class="row" style="justify-content:space-between">
+      <b id="partLabel"></b>
+      <span class="muted small" id="timeLeft"></span>
+    </div>
+    <div class="timerbar"><div id="timerFill"></div></div>
+    <div class="stage" id="stage"></div>
+  </section>
+
+  <!-- Quiz -->
+  <section id="s-quiz" class="card hidden">
+    <h2>Step 3 · Quiz</h2>
+    <p class="muted">Answer every question. Take your best guess if you're not sure. There's no time limit.</p>
+    <form id="quizForm"></form>
+    <fieldset class="q">
+      <legend>Last question (not scored): did you have any technical problems – e.g. sound not working, screen froze, got interrupted?</legend>
+      <label><input type="radio" name="tech" value="no"> No</label>
+      <label><input type="radio" name="tech" value="yes"> Yes</label>
+    </fieldset>
+    <div class="row">
+      <button id="btnSubmit" disabled>Submit my answers</button>
+      <span id="quizProgress" class="small muted"></span>
+    </div>
+  </section>
+
+  <!-- Result -->
+  <section id="s-result" class="card hidden">
+    <h2>Step 4 · Your result</h2>
+    <div class="score" id="scoreBig"></div>
+    <p id="scorePct" class="muted"></p>
+    <p id="saveStatus">Saving…</p>
+    <div id="saveFail" class="hidden">
+      <p>Your result couldn't be saved automatically (this can happen on some school devices). Please
+        <b>download your result</b> and send the file to the researcher – it's your backup.</p>
+      <div class="row">
+        <button id="btnBackup">⬇ Download my result</button>
+        <button class="secondary" id="btnRetry">Try saving again</button>
+      </div>
+    </div>
+    <p class="small muted" style="margin-top:16px">Thank you for taking part! Please <b>don't tell others the questions, answers, or which group you were in</b> until everyone has finished – it would affect the results.</p>
+    <button class="secondary" id="btnNext">Finish (next participant can start)</button>
+  </section>
+
+  <footer><a href="#results">Researcher</a></footer>
+</main>
+
+<!-- ====================== RESEARCHER VIEW ====================== -->
+<main id="researcher" class="wide hidden">
+  <div class="row" style="justify-content:space-between">
+    <h1>Results – Learning medium vs. immediate recall</h1>
+    <a href="#" class="small">← Participant view</a>
+  </div>
+
+  <section id="r-login" class="card hidden">
+    <h2>Researcher access</h2>
+    <p class="muted">Enter the admin key you set in the Apps Script (<code>ADMIN_KEY</code>).</p>
+    <div class="row">
+      <input type="password" id="keyInput" placeholder="Admin key">
+      <button id="btnLogin">Open results</button>
+    </div>
+    <p id="loginMsg" class="status-bad"></p>
+  </section>
+
+  <section id="r-body" class="hidden">
+    <div class="card">
+      <div class="row">
+        <button id="btnRefresh" class="secondary">↻ Refresh</button>
+        <button id="btnCsv">⬇ CSV – all data</button>
+        <button id="btnCsvWide" class="secondary">⬇ CSV – ANOVA columns</button>
+        <button id="btnPng" class="secondary">⬇ Chart as PNG</button>
+        <label class="btn secondary" for="importFile">⬆ Import backup file(s)</label>
+        <input type="file" id="importFile" accept=".csv,text/csv" multiple class="hidden">
+      </div>
+      <label class="small" style="display:block;margin-top:12px">
+        <input type="checkbox" id="chkExclude"> Exclude flagged responses (reported a technical problem, reloaded mid-material, or switched tabs during the material)
+      </label>
+      <p id="rMsg" class="small muted"></p>
+    </div>
+
+    <!-- Slide-ready summary -->
+    <div class="card" id="summaryCard">
+      <h2>Summary – all conditions compared</h2>
+      <div class="kpis" id="kpis"></div>
+      <div id="chartWrap" style="margin-top:16px"><div id="tip" class="hidden"></div></div>
+      <div class="tablewrap" style="margin-top:12px;max-height:none">
+        <table id="groupTable"></table>
+      </div>
+      <p class="anova" id="anovaLine"></p>
+      <p class="small muted">IV: learning medium (3 levels, between-subjects, random assignment). DV: quiz score out of <span class="qcount"></span>.
+        Controlled: identical content, identical total exposure (<span class="exposure"></span>), identical quiz.
+        Test: one-way ANOVA (α = 0.05). Error bars = ±1 standard error.</p>
+    </div>
+
+    <div class="card">
+      <h2>Every response (<span id="rawCount">0</span>)</h2>
+      <div class="tablewrap"><table id="rawTable"></table></div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* =================================================================
+   CONFIGURATION
+   ================================================================= */
+const CONFIG = {
+  // Paste your Google Apps Script Web App URL (ends in /exec). Empty = demo mode (this browser only).
+  SCRIPT_URL: '',
+  SEGMENT_SECONDS: 24,   // identical for every medium → identical total exposure time
+  SPEECH_RATE: 0.95
+};
+
+/* =================================================================
+   STUDY MATERIAL — one script, used word-for-word by every medium.
+   The topic is fictional, so no participant has prior knowledge of it.
+   ================================================================= */
+const SEGMENTS = [
+  { pic: '🏝️🌊', text: 'Karsa Island lies in the cold northern sea, about 300 kilometres from the nearest coast. It is home to a rare insect called the lumen moth, which has never been found anywhere else on Earth.' },
+  { pic: '🦋✨', text: 'A lumen moth has silver wings about the size of a coin. On its back are exactly six blue spots that glow softly in the dark. Scientists use the pattern of these spots to tell individual moths apart.' },
+  { pic: '🌲🍯', text: 'Lumen moths do not visit flowers. Instead, they feed on the sap of just one kind of tree, the grey pine, which grows only on the eastern hills of the island.' },
+  { pic: '🦇🌙', text: 'The glow is not used to attract a mate. It warns predators, especially night-hunting bats, that the moth tastes bitter. Moths that glow more brightly are attacked less often.' },
+  { pic: '🥚🐛', text: 'An adult lumen moth lives for only nineteen days. Females lay their eggs in cracks in grey pine bark, and the caterpillars stay hidden inside the bark for almost two years.' },
+  { pic: '🎣⛈️', text: 'The moths were first described in 1974 by a fisherman named Tomas Brekk. He saw glowing lights in the forest while sheltering from a storm, and at first he thought the lights were ghosts.' },
+  { pic: '🍄🌲', text: 'Today there are about 4,000 lumen moths left. Their biggest threat is a fungus that kills grey pines. When the trees die, the moths lose both their food and the place where their young grow.' },
+  { pic: '❄️🌱', text: 'To protect the moths, visitors may only enter the eastern hills in winter, when the adults are not active. Volunteers also plant around 500 new grey pines every year.' }
+];
+
+/* Same quiz for everyone: identical questions, identical order, identical options. */
+const QUESTIONS = [
+  { q: 'About how far is Karsa Island from the nearest coast?', o: ['30 km', '100 km', '300 km', '3,000 km'] },
+  { q: 'How many glowing spots does a lumen moth have on its back?', o: ['Four', 'Six', 'Seven', 'Nine'] },
+  { q: 'What colour are the glowing spots?', o: ['Blue', 'Green', 'Yellow', 'White'] },
+  { q: 'What do lumen moths feed on?', o: ['Nectar from wildflowers', 'Leaves of the grey pine', 'Small insects', 'Sap of the grey pine'] },
+  { q: 'What is the main purpose of the moth’s glow?', o: ['To attract a mate', 'To warn predators that it tastes bitter', 'To see while feeding at night', 'To keep warm on cold nights'] },
+  { q: 'How long does an adult lumen moth live?', o: ['9 days', '19 days', '2 months', '2 years'] },
+  { q: 'Where do females lay their eggs?', o: ['In cracks in grey pine bark', 'Under grey pine needles', 'In the soil', 'On rocks near the sea'] },
+  { q: 'Who first described the lumen moth?', o: ['A biologist', 'A teacher', 'A lighthouse keeper', 'A fisherman'] },
+  { q: 'In what year were the moths first described?', o: ['1947', '1964', '1974', '1994'] },
+  { q: 'What is the biggest threat to lumen moths today?', o: ['Night-hunting bats', 'A fungus that kills grey pines', 'Too many tourists', 'Rising sea levels'] },
+  { q: 'About how many lumen moths are left?', o: ['About 400', 'About 4,000', 'About 14,000', 'About 40,000'] },
+  { q: 'When are visitors allowed into the eastern hills?', o: ['Spring', 'Summer', 'Autumn', 'Winter'] }
+];
+// Answer key, lightly encoded so it isn't readable at a glance in the page source.
+const KEY_ENC = [2, 0, 2, 0, 1, 0, 2, 0, 2, 0, 3, 0];
+const answerKey = () => KEY_ENC.map((e, i) => (((e - 3 * i) % 4) + 4) % 4);
+
+const MEDIA = {
+  text:  { label: 'Reading (text)', short: 'Text', how: 'The information will appear on screen as written text. Read it carefully – each part stays on screen for a fixed time.', color: 'var(--series-text)', hex: '#2a78d6' },
+  video: { label: 'Narrated slideshow (video)', short: 'Video', how: 'You will watch a slideshow of pictures while a voice narrates the information. Keep your sound on.', color: 'var(--series-video)', hex: '#eb6834' },
+  audio: { label: 'Listening (audio)', short: 'Audio', how: 'You will listen to a voice narrating the information. There is nothing to read – just listen carefully. Keep your sound on.', color: 'var(--series-audio)', hex: '#1baf7a' }
+};
+const MEDIA_ORDER = ['text', 'video', 'audio'];
+const HEADERS = ['medium', 'score', 'total', 'percent', 'timestamp', 'name', 'participant_id',
+  'exposure_seconds', 'quiz_seconds', 'tab_switches', 'speech_overruns', 'interrupted',
+  'tech_issue', 'assignment_source', 'answers', 'received_at'];
+
+const TOTAL_SECONDS = SEGMENTS.length * CONFIG.SEGMENT_SECONDS;
+const DEMO = !CONFIG.SCRIPT_URL;
+const $ = id => document.getElementById(id);
+const fmtTime = s => `${Math.floor(s / 60)} min ${String(Math.round(s % 60)).padStart(2, '0')} s`;
+
+document.querySelectorAll('.exposure').forEach(e => e.textContent = fmtTime(TOTAL_SECONDS));
+document.querySelectorAll('.segcount').forEach(e => e.textContent = SEGMENTS.length);
+document.querySelectorAll('.segsec').forEach(e => e.textContent = CONFIG.SEGMENT_SECONDS);
+document.querySelectorAll('.qcount').forEach(e => e.textContent = QUESTIONS.length);
+if (DEMO) $('demoBanner').classList.remove('hidden');
+
+/* =================================================================
+   DATA STORE — Google Apps Script (cloud) or localStorage (demo mode)
+   ================================================================= */
+async function fetchJson(url, opts = {}, ms = 15000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const res = await fetch(url, { ...opts, signal: ctl.signal, redirect: 'follow' });
+    return await res.json();
+  } finally { clearTimeout(t); }
+}
+// text/plain avoids a CORS preflight, which Apps Script doesn't support.
+const postJson = body => fetchJson(CONFIG.SCRIPT_URL, {
+  method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body)
+});
+
+const Store = {
+  async assign() {
+    if (!DEMO) {
+      try {
+        const r = await fetchJson(CONFIG.SCRIPT_URL + '?action=assign', {}, 8000);
+        if (r.ok && MEDIA[r.medium]) return { medium: r.medium, source: 'server-block' };
+      } catch (e) { /* fall through to local randomisation */ }
+    }
+    const m = MEDIA_ORDER[Math.floor(Math.random() * 3)];
+    return { medium: m, source: DEMO ? 'demo-random' : 'local-random' };
+  },
+  async save(record) {
+    if (DEMO) {
+      const rows = JSON.parse(localStorage.getItem('csp_demo_rows') || '[]');
+      if (!rows.some(r => r.participant_id === record.participant_id))
+        rows.push({ ...record, received_at: new Date().toISOString() });
+      localStorage.setItem('csp_demo_rows', JSON.stringify(rows));
+      return true;
+    }
+    const r = await postJson({ action: 'submit', record });
+    if (!r.ok) throw new Error(r.error || 'save failed');
+    return true;
+  },
+  async results(key) {
+    if (DEMO) return JSON.parse(localStorage.getItem('csp_demo_rows') || '[]');
+    const r = await fetchJson(CONFIG.SCRIPT_URL + '?action=results&key=' + encodeURIComponent(key));
+    if (!r.ok) throw new Error(r.error === 'bad_key' ? 'Wrong admin key.' : (r.error || 'Could not load results.'));
+    return r.rows;
+  },
+  async importRows(key, records) {
+    if (DEMO) {
+      let added = 0;
+      for (const rec of records) {
+        const before = JSON.parse(localStorage.getItem('csp_demo_rows') || '[]').length;
+        await Store.save(rec);
+        if (JSON.parse(localStorage.getItem('csp_demo_rows')).length > before) added++;
+      }
+      return { added, duplicates: records.length - added };
+    }
+    const r = await postJson({ action: 'import', key, records });
+    if (!r.ok) throw new Error(r.error === 'bad_key' ? 'Wrong admin key.' : (r.error || 'Import failed.'));
+    return r;
+  }
+};
+
+// Results that failed to save are queued and retried silently on the next page load.
+const Pending = {
+  get: () => JSON.parse(localStorage.getItem('csp_pending') || '[]'),
+  add(rec) { const p = Pending.get().filter(r => r.participant_id !== rec.participant_id); p.push(rec); localStorage.setItem('csp_pending', JSON.stringify(p)); },
+  remove(id) { localStorage.setItem('csp_pending', JSON.stringify(Pending.get().filter(r => r.participant_id !== id))); },
+  async flush() { for (const r of Pending.get()) { try { await Store.save(r); Pending.remove(r.participant_id); } catch (e) { return; } } }
+};
+
+/* =================================================================
+   CSV helpers
+   ================================================================= */
+function csvCell(v) {
+  let s = v == null ? '' : String(v);
+  if (/^[=+\-@]/.test(s) && isNaN(Number(s))) s = "'" + s; // block spreadsheet formula injection
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+const toCsv = (headers, rows) => [headers.join(','), ...rows.map(r => headers.map(h => csvCell(r[h])).join(','))].join('\r\n');
+function parseCsv(text) {
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+      else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell); rows.push(row); row = []; cell = '';
+    } else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  const head = (rows.shift() || []).map(h => h.trim());
+  return rows.filter(r => r.some(x => x !== '')).map(r => Object.fromEntries(head.map((h, i) => [h, r[i]])));
+}
+function download(filename, content, type = 'text/csv;charset=utf-8') {
+  const blob = content instanceof Blob ? content : new Blob(['﻿' + content], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/* =================================================================
+   PARTICIPANT FLOW  —  welcome → assign → learn → quiz → result
+   ================================================================= */
+// Session state survives a page reload, so a participant can't re-roll their group.
+let S = JSON.parse(sessionStorage.getItem('csp_state') || 'null');
+const saveState = () => sessionStorage.setItem('csp_state', JSON.stringify(S));
+const newId = () => 'P-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+
+function show(section) {
+  ['s-welcome', 's-assign', 's-learn', 's-quiz', 's-result'].forEach(id => $(id).classList.toggle('hidden', id !== section));
+  const order = ['assign', 'learn', 'quiz', 'result'];
+  const cur = { 's-welcome': -1, 's-assign': 0, 's-learn': 1, 's-quiz': 2, 's-result': 3 }[section];
+  document.querySelectorAll('#steps li').forEach(li => {
+    const i = order.indexOf(li.dataset.step);
+    li.classList.toggle('active', i === cur);
+    li.classList.toggle('done', i < cur);
+  });
+  window.scrollTo(0, 0);
+}
+
+$('btnStart').onclick = async () => {
+  $('btnStart').disabled = true;
+  $('startMsg').textContent = 'Assigning you to a group…';
+  const a = await Store.assign();
+  S = {
+    pid: newId(), name: $('nameInput').value.trim(), medium: a.medium, source: a.source,
+    stage: 'assign', interrupted: 0, tabSwitches: 0, overruns: 0
+  };
+  saveState();
+  renderAssign();
+};
+
+/* ---------- Speech (narration for video + audio) ---------- */
+const hasSpeech = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+let voice = null;
+function pickVoice() {
+  if (!hasSpeech) return;
+  const vs = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang));
+  // Prefer an on-device voice (more reliable than network voices), en-GB/en-US first.
+  voice = vs.find(v => v.localService && /en[-_](GB|US)/i.test(v.lang))
+       || vs.find(v => /en[-_](GB|US)/i.test(v.lang)) || vs[0] || null;
+}
+if (hasSpeech) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speak(text) {
+  if (!hasSpeech) return;
+  // Queue sentence-by-sentence: avoids Chrome cutting off long utterances.
+  (text.match(/[^.!?]+[.!?]+/g) || [text]).forEach(s => {
+    const u = new SpeechSynthesisUtterance(s.trim());
+    u.rate = CONFIG.SPEECH_RATE;
+    if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = 'en-US';
+    speechSynthesis.speak(u);
+  });
+}
+
+function renderAssign() {
+  const m = MEDIA[S.medium];
+  $('assignLabel').textContent = m.label;
+  $('assignHow').textContent = m.how;
+  const needsSound = S.medium !== 'text';
+  $('soundCheck').classList.toggle('hidden', !needsSound);
+  $('noSpeech').classList.toggle('hidden', !needsSound || hasSpeech);
+  $('btnTestSound').disabled = !hasSpeech;
+  const sync = () => { $('btnBegin').disabled = needsSound && !$('chkHeard').checked; };
+  $('chkHeard').checked = false; $('chkHeard').onchange = sync; sync();
+  show('s-assign');
+}
+$('btnTestSound').onclick = () => { speechSynthesis.cancel(); speak('This is a sound check. If you can hear this clearly, you are ready.'); };
+
+$('btnBegin').onclick = () => {
+  // Starting speech inside a tap "unlocks" narration on phones/iPads.
+  if (hasSpeech && S.medium !== 'text') { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); }
+  S.stage = 'learn'; saveState();
+  runLearning();
+};
+
+/* ---------- Learning phase: fixed-time, auto-advancing, no controls ---------- */
+let learnTimer = null;
+function renderSegment(k) {
+  const seg = SEGMENTS[k], stage = $('stage');
+  $('partLabel').textContent = `Part ${k + 1} of ${SEGMENTS.length}`;
+  if (S.medium === 'text') {
+    stage.innerHTML = '<p class="passage"></p>';
+    stage.firstChild.textContent = seg.text;
+  } else if (S.medium === 'video') {
+    stage.innerHTML = `<div class="pic" aria-hidden="true">${seg.pic}</div>`;
+  } else {
+    stage.innerHTML = '<div class="pulse" aria-hidden="true">🎧</div><p class="muted">Listen carefully…</p>';
+  }
+}
+function runLearning() {
+  show('s-learn');
+  const start = Date.now();
+  let cur = -1;
+  const onVis = () => { if (document.hidden) { S.tabSwitches++; saveState(); } };
+  document.addEventListener('visibilitychange', onVis);
+  const tick = () => {
+    const el = (Date.now() - start) / 1000;
+    const k = Math.floor(el / CONFIG.SEGMENT_SECONDS);
+    if (k !== cur) {
+      if (hasSpeech && S.medium !== 'text') {
+        if (cur >= 0 && speechSynthesis.speaking) { S.overruns++; saveState(); }
+        speechSynthesis.cancel();
+      }
+      if (k >= SEGMENTS.length) {
+        clearInterval(learnTimer);
+        document.removeEventListener('visibilitychange', onVis);
+        S.exposure = Math.round(el * 10) / 10;
+        S.stage = 'quiz'; saveState();
+        return startQuiz();
+      }
+      cur = k;
+      renderSegment(k);
+      if (S.medium !== 'text') speak(SEGMENTS[k].text);
+    }
+    if (hasSpeech && speechSynthesis.paused) speechSynthesis.resume(); // Chrome occasionally stalls
+    $('timerFill').style.width = Math.min(100, (el / TOTAL_SECONDS) * 100) + '%';
+    $('timeLeft').textContent = `${Math.max(0, Math.ceil(TOTAL_SECONDS - el))} s left`;
+  };
+  learnTimer = setInterval(tick, 200);
+  tick();
+}
+
+/* ---------- Quiz ---------- */
+function startQuiz() {
+  const f = $('quizForm');
+  f.innerHTML = '';
+  QUESTIONS.forEach((item, i) => {
+    const fs = document.createElement('fieldset');
+    fs.className = 'q';
+    const lg = document.createElement('legend');
+    lg.textContent = `${i + 1}. ${item.q}`;
+    fs.appendChild(lg);
+    item.o.forEach((opt, j) => {
+      const l = document.createElement('label');
+      l.innerHTML = `<input type="radio" name="q${i}" value="${j}">`;
+      l.appendChild(document.createTextNode(opt));
+      fs.appendChild(l);
+    });
+    f.appendChild(fs);
+  });
+  S.quizStart = S.quizStart || Date.now(); saveState();
+  updateQuizProgress();
+  show('s-quiz');
+}
+function answered() {
+  return QUESTIONS.map((_, i) => { const c = document.querySelector(`input[name=q${i}]:checked`); return c ? Number(c.value) : null; });
+}
+function updateQuizProgress() {
+  const n = answered().filter(a => a !== null).length;
+  const tech = document.querySelector('input[name=tech]:checked');
+  $('quizProgress').textContent = `${n} of ${QUESTIONS.length} answered`;
+  $('btnSubmit').disabled = n < QUESTIONS.length || !tech;
+}
+document.addEventListener('change', e => { if (e.target.closest('#s-quiz')) updateQuizProgress(); });
+
+$('btnSubmit').onclick = () => {
+  const ans = answered();
+  const key = answerKey();
+  const score = ans.reduce((s, a, i) => s + (a === key[i] ? 1 : 0), 0);
+  const total = QUESTIONS.length;
+  S.record = {
+    medium: S.medium,
+    score, total,
+    percent: Math.round((score / total) * 1000) / 10,
+    timestamp: new Date().toISOString(),
+    name: S.name,
+    participant_id: S.pid,
+    exposure_seconds: S.exposure,
+    quiz_seconds: Math.round((Date.now() - S.quizStart) / 1000),
+    tab_switches: S.tabSwitches,
+    speech_overruns: S.overruns,
+    interrupted: S.interrupted,
+    tech_issue: document.querySelector('input[name=tech]:checked').value,
+    assignment_source: S.source,
+    answers: ans.map(a => 'ABCD'[a]).join('')
+  };
+  S.stage = 'result'; saveState();
+  showResult();
+};
+
+/* ---------- Result + saving ---------- */
+function showResult() {
+  const r = S.record;
+  $('scoreBig').textContent = `${r.score} / ${r.total}`;
+  $('scorePct').textContent = `${r.percent}% correct`;
+  show('s-result');
+  if (S.saved) setSaved(); else trySave();
+}
+function setSaved() {
+  $('saveStatus').className = 'status-ok';
+  $('saveStatus').textContent = DEMO ? '✓ Saved (demo mode – this browser only).' : '✓ Your result has been saved.';
+  $('saveFail').classList.add('hidden');
+}
+async function trySave() {
+  $('saveStatus').className = ''; $('saveStatus').textContent = 'Saving…';
+  $('btnRetry').disabled = true;
+  try {
+    await Store.save(S.record);
+    S.saved = true; saveState();
+    Pending.remove(S.record.participant_id);
+    setSaved();
+  } catch (e) {
+    Pending.add(S.record);
+    $('saveStatus').className = 'status-bad';
+    $('saveStatus').textContent = '⚠ Not saved yet.';
+    $('saveFail').classList.remove('hidden');
+  }
+  $('btnRetry').disabled = false;
+}
+$('btnRetry').onclick = trySave;
+$('btnBackup').onclick = () => download(`csp-result-${S.record.participant_id}.csv`, toCsv(HEADERS, [S.record]));
+$('btnNext').onclick = () => { sessionStorage.removeItem('csp_state'); S = null; $('nameInput').value = ''; $('btnStart').disabled = false; $('startMsg').textContent = ''; show('s-welcome'); };
+
+/* ---------- Resume after reload (never re-randomises) ---------- */
+function resume() {
+  if (!S) return show('s-welcome');
+  if (S.stage === 'assign') return renderAssign();
+  if (S.stage === 'learn') {
+    // Reloaded mid-material: flag it (can be excluded later) and restart the material from part 1.
+    S.interrupted = 1; S.stage = 'assign'; saveState();
+    return renderAssign();
+  }
+  if (S.stage === 'quiz') return startQuiz();
+  if (S.stage === 'result') return showResult();
+  show('s-welcome');
+}
+
+/* =================================================================
+   RESEARCHER VIEW
+   ================================================================= */
+let rows = [];
+const adminKey = () => sessionStorage.getItem('csp_admin_key') || '';
+
+function route() {
+  const isResults = location.hash === '#results';
+  $('participant').classList.toggle('hidden', isResults);
+  $('researcher').classList.toggle('hidden', !isResults);
+  if (isResults) {
+    if (DEMO || adminKey()) loadResults();
+    else { $('r-login').classList.remove('hidden'); $('r-body').classList.add('hidden'); }
+  }
+}
+window.addEventListener('hashchange', route);
+
+$('btnLogin').onclick = async () => {
+  sessionStorage.setItem('csp_admin_key', $('keyInput').value);
+  loadResults();
+};
+$('keyInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('btnLogin').click(); });
+
+async function loadResults() {
+  $('loginMsg').textContent = '';
+  $('rMsg').textContent = 'Loading…';
+  try {
+    rows = (await Store.results(adminKey())).map(normalise);
+    $('r-login').classList.add('hidden');
+    $('r-body').classList.remove('hidden');
+    $('rMsg').textContent = `Loaded ${rows.length} responses at ${new Date().toLocaleTimeString()}` + (DEMO ? ' (demo mode – this browser only).' : '.');
+    renderResults();
+  } catch (e) {
+    sessionStorage.removeItem('csp_admin_key');
+    $('r-login').classList.remove('hidden'); $('r-body').classList.add('hidden');
+    $('loginMsg').textContent = e.message || 'Could not load results (check SCRIPT_URL and your connection).';
+  }
+}
+$('btnRefresh').onclick = loadResults;
+$('chkExclude').onchange = renderResults;
+
+function normalise(r) {
+  const o = {};
+  HEADERS.forEach(h => o[h] = r[h] == null ? '' : r[h]);
+  ['score', 'total', 'percent', 'exposure_seconds', 'quiz_seconds', 'tab_switches', 'speech_overruns', 'interrupted']
+    .forEach(h => { if (o[h] !== '' && !isNaN(Number(o[h]))) o[h] = Number(o[h]); });
+  return o;
+}
+const isFlagged = r => r.tech_issue === 'yes' || Number(r.interrupted) > 0 || Number(r.tab_switches) > 0;
+const activeRows = () => $('chkExclude').checked ? rows.filter(r => !isFlagged(r)) : rows;
+
+/* ---------- Statistics ---------- */
+const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : NaN;
+const sd = a => { if (a.length < 2) return NaN; const m = mean(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / (a.length - 1)); };
+function lgamma(x) {
+  const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+  let y = x, t = x + 5.5; t -= (x + 0.5) * Math.log(t);
+  let s = 1.000000000190015;
+  for (const ci of c) s += ci / ++y;
+  return -t + Math.log(2.5066282746310005 * s / x);
+}
+function betacf(a, b, x) {
+  const EPS = 3e-14, FPMIN = 1e-300;
+  let qab = a + b, qap = a + 1, qam = a - 1, c = 1, d = 1 - qab * x / qap;
+  if (Math.abs(d) < FPMIN) d = FPMIN; d = 1 / d; let h = d;
+  for (let m = 1; m <= 300; m++) {
+    const m2 = 2 * m;
+    let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+    d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN; c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN; d = 1 / d; h *= d * c;
+    aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+    d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN; c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN; d = 1 / d;
+    const del = d * c; h *= del;
+    if (Math.abs(del - 1) < EPS) break;
+  }
+  return h;
+}
+function ibeta(x, a, b) {
+  if (x <= 0) return 0; if (x >= 1) return 1;
+  const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+  return x < (a + 1) / (a + b + 2) ? bt * betacf(a, b, x) / a : 1 - bt * betacf(b, a, 1 - x) / b;
+}
+function anova(groups) {
+  const g = groups.filter(x => x.length);
+  const all = g.flat(), N = all.length, k = g.length;
+  if (k < 2 || N - k < 1) return null;
+  const M = mean(all);
+  const ssb = g.reduce((s, x) => s + x.length * (mean(x) - M) ** 2, 0);
+  const ssw = g.reduce((s, x) => { const m = mean(x); return s + x.reduce((t, v) => t + (v - m) ** 2, 0); }, 0);
+  const dfb = k - 1, dfw = N - k, msb = ssb / dfb, msw = ssw / dfw;
+  const F = msw === 0 ? (msb === 0 ? 0 : Infinity) : msb / msw;
+  const p = F === Infinity ? 0 : ibeta(dfw / (dfw + dfb * F), dfw / 2, dfb / 2);
+  return { ssb, ssw, dfb, dfw, msb, msw, F, p, N, k };
+}
+const f2 = x => isFinite(x) ? x.toFixed(2) : '–';
+
+/* ---------- Render ---------- */
+function groupStats(data) {
+  return MEDIA_ORDER.map(m => {
+    const g = data.filter(r => r.medium === m);
+    const scores = g.map(r => Number(r.score)), pcts = g.map(r => Number(r.percent));
+    const s = sd(scores), sp = sd(pcts);
+    return { m, n: g.length, scores, meanScore: mean(scores), sdScore: s, seScore: s / Math.sqrt(g.length),
+             meanPct: mean(pcts), sePct: sp / Math.sqrt(g.length) };
+  });
+}
+
+function renderResults() {
+  const data = activeRows();
+  const stats = groupStats(data);
+  const excluded = rows.length - data.length;
+
+  $('kpis').innerHTML =
+    `<div class="kpi"><div class="v">${data.length}</div><div class="l">Total responses${excluded ? ` (${excluded} excluded)` : ''}</div></div>` +
+    stats.map(s => `<div class="kpi"><div class="l"><span class="swatch" style="background:${MEDIA[s.m].color}"></span>${MEDIA[s.m].label}</div>
+      <div class="v">${s.n ? f2(s.meanScore) : '–'}<span class="small muted"> / ${QUESTIONS.length}</span></div>
+      <div class="l">mean score · n = ${s.n}</div></div>`).join('');
+
+  $('groupTable').innerHTML =
+    `<tr><th>Medium</th><th class="num">n</th><th class="num">Mean score (/${QUESTIONS.length})</th><th class="num">Mean %</th><th class="num">SD</th><th class="num">SE</th><th class="num">Min</th><th class="num">Max</th></tr>` +
+    stats.map(s => `<tr><td>${MEDIA[s.m].label}</td><td class="num">${s.n}</td><td class="num">${s.n ? f2(s.meanScore) : '–'}</td>
+      <td class="num">${s.n ? s.meanPct.toFixed(1) + '%' : '–'}</td><td class="num">${f2(s.sdScore)}</td><td class="num">${f2(s.seScore)}</td>
+      <td class="num">${s.n ? Math.min(...s.scores) : '–'}</td><td class="num">${s.n ? Math.max(...s.scores) : '–'}</td></tr>`).join('');
+
+  const a = anova(stats.map(s => s.scores));
+  if (!a || stats.some(s => s.n < 2)) {
+    $('anovaLine').innerHTML = '<b>One-way ANOVA:</b> needs at least 2 responses in every group.';
+  } else {
+    const pTxt = a.p < 0.001 ? 'p < 0.001' : `p = ${a.p.toFixed(3)}`;
+    const sig = a.p < 0.05;
+    $('anovaLine').innerHTML = `<b>One-way ANOVA:</b> F(${a.dfb}, ${a.dfw}) = ${f2(a.F)}, ${pTxt} → ` +
+      (sig ? '<b>statistically significant</b> difference between at least two media (p &lt; 0.05).'
+           : '<b>no statistically significant</b> difference between media (p ≥ 0.05).') +
+      `<br><span class="small muted">SS between = ${f2(a.ssb)}, SS within = ${f2(a.ssw)}, MS between = ${f2(a.msb)}, MS within = ${f2(a.msw)}. ` +
+      `Check this against your own spreadsheet ANOVA.</span>`;
+  }
+
+  drawChart(stats, data.length);
+  renderRaw();
+}
+
+function renderRaw() {
+  const sorted = [...rows].sort((x, y) => String(y.timestamp).localeCompare(String(x.timestamp)));
+  $('rawCount').textContent = rows.length;
+  const cols = HEADERS;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  $('rawTable').innerHTML = '<tr><th>#</th>' + cols.map(c => `<th>${c}</th>`).join('') + '<th>flagged</th></tr>' +
+    sorted.map((r, i) => `<tr><td class="num">${sorted.length - i}</td>` +
+      cols.map(c => `<td${typeof r[c] === 'number' ? ' class="num"' : ''}>${esc(r[c])}</td>`).join('') +
+      `<td>${isFlagged(r) ? '⚑ yes' : ''}</td></tr>`).join('');
+}
+
+/* Column chart: mean % per medium, ±1 SE. Explicit colours so the PNG export matches. */
+function drawChart(stats, n) {
+  const W = 720, H = 420, L = 64, R = 24, T = 64, B = 70;
+  const pw = W - L - R, ph = H - T - B;
+  const y = v => T + ph - (v / 100) * ph;
+  const bw = 110, gap = pw / 3;
+  const ink = '#0b0b0b', ink2 = '#52514e', grid = '#e2e1dc';
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" role="img" aria-label="Column chart of mean quiz score by learning medium">`;
+  s += `<rect width="${W}" height="${H}" fill="#fcfcfb"/>`;
+  s += `<text x="${L}" y="28" font-size="18" font-weight="700" fill="${ink}">Mean quiz score by learning medium</text>`;
+  s += `<text x="${L}" y="48" font-size="13" fill="${ink2}">N = ${n} participants · ${QUESTIONS.length}-question quiz · error bars = ±1 SE</text>`;
+  for (let v = 0; v <= 100; v += 25) {
+    s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${grid}" stroke-width="1"/>`;
+    s += `<text x="${L - 8}" y="${y(v) + 4}" font-size="12" text-anchor="end" fill="${ink2}">${v}%</text>`;
+  }
+  s += `<text transform="translate(16 ${T + ph / 2}) rotate(-90)" font-size="12" text-anchor="middle" fill="${ink2}">Mean score (% correct)</text>`;
+  stats.forEach((st, i) => {
+    const cx = L + gap * i + gap / 2, x = cx - bw / 2;
+    if (st.n) {
+      const top = y(st.meanPct), base = y(0), r = Math.min(4, base - top);
+      s += `<path data-i="${i}" class="bar" d="M${x},${base} V${top + r} Q${x},${top} ${x + r},${top} H${x + bw - r} Q${x + bw},${top} ${x + bw},${top + r} V${base} Z" fill="${MEDIA[st.m].hex}"/>`;
+      let labelY = top - 8;
+      if (st.n > 1 && isFinite(st.sePct)) {
+        const e1 = y(Math.min(100, st.meanPct + st.sePct)), e2 = y(Math.max(0, st.meanPct - st.sePct));
+        s += `<g stroke="${ink}" stroke-width="1.5"><line x1="${cx}" x2="${cx}" y1="${e1}" y2="${e2}"/><line x1="${cx - 8}" x2="${cx + 8}" y1="${e1}" y2="${e1}"/><line x1="${cx - 8}" x2="${cx + 8}" y1="${e2}" y2="${e2}"/></g>`;
+        labelY = Math.min(labelY, e1 - 6);
+      }
+      s += `<text x="${cx + bw / 2 + 6}" y="${Math.max(T + 12, top + 16)}" font-size="14" font-weight="700" fill="${ink}">${st.meanPct.toFixed(1)}%</text>`;
+    }
+    s += `<text x="${cx}" y="${T + ph + 22}" font-size="14" font-weight="600" text-anchor="middle" fill="${ink}">${MEDIA[st.m].label}</text>`;
+    s += `<text x="${cx}" y="${T + ph + 40}" font-size="12" text-anchor="middle" fill="${ink2}">n = ${st.n}${st.n ? ` · mean ${f2(st.meanScore)}/${QUESTIONS.length}` : ''}</text>`;
+    // Invisible, generous hover target
+    s += `<rect data-i="${i}" class="hit" x="${cx - gap / 2 + 4}" y="${T}" width="${gap - 8}" height="${ph}" fill="transparent"/>`;
+  });
+  s += `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="${ink2}" stroke-width="1"/>`;
+  s += '</svg>';
+  const wrap = $('chartWrap');
+  wrap.querySelectorAll('svg').forEach(e => e.remove());
+  wrap.insertAdjacentHTML('afterbegin', s);
+
+  const tip = $('tip');
+  wrap.querySelectorAll('.hit').forEach(h => {
+    h.addEventListener('mousemove', ev => {
+      const st = stats[h.dataset.i];
+      const box = wrap.getBoundingClientRect();
+      tip.innerHTML = `<b>${MEDIA[st.m].label}</b><br>n = ${st.n}<br>` + (st.n
+        ? `Mean: ${f2(st.meanScore)} / ${QUESTIONS.length} (${st.meanPct.toFixed(1)}%)<br>SD: ${f2(st.sdScore)} · SE: ${f2(st.seScore)}` : 'No data yet');
+      tip.style.left = (ev.clientX - box.left) + 'px';
+      tip.style.top = (ev.clientY - box.top) + 'px';
+      tip.classList.remove('hidden');
+    });
+    h.addEventListener('mouseleave', () => tip.classList.add('hidden'));
+  });
+}
+
+/* ---------- Exports ---------- */
+const stamp = () => new Date().toISOString().slice(0, 10);
+$('btnCsv').onclick = () => download(`csp-results-${stamp()}.csv`, toCsv(HEADERS, activeRows()));
+// One column per group — the layout Excel's "Anova: Single Factor" (and the Sheets XLMiner add-on) expects.
+$('btnCsvWide').onclick = () => {
+  const cols = MEDIA_ORDER.map(m => activeRows().filter(r => r.medium === m).map(r => r.score));
+  const len = Math.max(0, ...cols.map(c => c.length));
+  const lines = [MEDIA_ORDER.map(m => MEDIA[m].short).join(',')];
+  for (let i = 0; i < len; i++) lines.push(cols.map(c => c[i] ?? '').join(','));
+  download(`csp-anova-columns-${stamp()}.csv`, lines.join('\r\n'));
+};
+$('btnPng').onclick = () => {
+  const svg = $('chartWrap').querySelector('svg');
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = 1440; c.height = 840;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    c.toBlob(b => download(`csp-chart-${stamp()}.png`, b));
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(svg));
+};
+$('importFile').onchange = async e => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  try {
+    const recs = [];
+    for (const f of files) recs.push(...parseCsv(await f.text()).map(normalise));
+    const valid = recs.filter(r => MEDIA[r.medium] && r.participant_id);
+    const r = await Store.importRows(adminKey(), valid);
+    $('rMsg').textContent = `Import: ${r.added} added, ${r.duplicates || 0} already present${r.rejected ? `, ${r.rejected} rejected` : ''}.`;
+    const msg = $('rMsg').textContent;
+    await loadResults();
+    $('rMsg').textContent = msg;
+  } catch (err) {
+    $('rMsg').textContent = 'Import failed: ' + err.message;
+  }
+};
+
+/* ---------- Boot ---------- */
+route();
+resume();
+Pending.flush();
+</script>
+</body>
+</html>
