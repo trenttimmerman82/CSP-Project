@@ -26,7 +26,7 @@ Files:
 1. Create a new Google Sheet, for example "CSP Results".
 2. **Extensions → Apps Script**. Delete the starter code and paste in all of `apps-script/Code.gs`.
 3. Change `ADMIN_KEY` at the top to your own secret word. You'll need it to open the results page.
-4. Click **Save**. Choose the `setup` function and click **Run**, then accept the permission prompt. This creates the `Responses` tab with its headers.
+4. Click **Save**. In the function dropdown next to **Run** (it may say `myFunction` or `doGet`), choose **`setup`** and click **Run**. Accept the permission prompt (Advanced → Go to project → Allow). Row 1 of the Sheet should now show the headers `medium, score, total, percent, …` on a tab named `Responses`. Reload the Sheet if they don't appear straight away.
 5. **Deploy → New deployment →** gear icon **→ Web app**
    - *Execute as:* **Me**
    - *Who has access:* **Anyone**. This is required so participants don't need to sign in.

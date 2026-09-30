@@ -143,8 +143,20 @@ function readRows_() {
 
 function getSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) {
+    throw new Error('This script is not attached to a Sheet. Open your Google Sheet and use ' +
+      'Extensions → Apps Script from inside it, then paste the code there.');
+  }
   let sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
+  if (!sheet) {
+    // Reuse the blank default tab ("Sheet1") rather than adding a second tab.
+    const sheets = ss.getSheets();
+    if (sheets.length === 1 && sheets[0].getLastRow() === 0) {
+      sheet = sheets[0].setName(SHEET_NAME);
+    } else {
+      sheet = ss.insertSheet(SHEET_NAME);
+    }
+  }
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(HEADERS);
     sheet.setFrozenRows(1);
@@ -161,5 +173,8 @@ function json_(obj) {
 
 /** Optional: run once from the editor to create the header row and authorise the script. */
 function setup() {
-  getSheet_();
+  const sheet = getSheet_();
+  sheet.activate();
+  Logger.log('Ready: tab "%s" in "%s" has headers: %s', SHEET_NAME,
+    SpreadsheetApp.getActiveSpreadsheet().getName(), sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0].join(', '));
 }
